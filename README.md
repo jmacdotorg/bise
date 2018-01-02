@@ -38,15 +38,11 @@ Bise assumes that the files will be sortable by date according to Apache's defau
 
 ### Rows
 
-* **All visitors**: Every hit in the logs, on any path.
+Rows are entirely user-defined. Set up a list of substring-match or pattern-match tests for Bise to run against each salient line of the web server's log files, and Bise will display the results of each test in a single, labeled row of its output table.
 
-* **RSS/JSON feeds**: Hits on your blog's syndication feed page(s).
+The example output at the top of this document displays six such reports, and these happen to correspond to the example configuration file found in `conf/conf-example.yaml`.
 
-* **Front page**: Hits on your blog's front page.
-
-* **Visits from Twitter**: Hits that name a `t.co`-based URL as their referer.
-
-* **Visits from Facebook**: Hits that invoke Facebook in their agent string.
+See "Configuration", below, for more information.
 
 ## Project status
 
