@@ -6,11 +6,11 @@ Bise looks at a bunch of [common log format](https://en.wikipedia.org/wiki/Commo
 December 14 - December 28
 Source                 Uniques Regulars
 ---------------------------------------
-All visitors              2906      559
-RSS feed                   583      421
-JSON feed                   28       17
-Front page                1905      268
-From Twitter                48        4
+All visitors              2489      260
+RSS feed                   305      147
+JSON feed                   10        1
+Front page                1664       47
+From Twitter                31        6
 ```
 
 See "Output details", below, for a deeper explanation of this table's content.
