@@ -6,11 +6,12 @@ Bise looks at a bunch of [common log format](https://en.wikipedia.org/wiki/Commo
 December 14 - December 28
 Source                 Uniques Regulars
 ---------------------------------------
-All visitors              3139      N/A
-RSS/JSON feeds             556      354
-Front page                1505       81
-Visits from Twitter         37        7
-Visits from Facebook        81        2
+All visitors              2906      559
+RSS feed                   583      421
+JSON feed                   28       17
+Front page                1905      268
+From Twitter                48        4
+From Facebook               77        1
 ```
 
 See "Output details", below, for a deeper explanation of this table's content.
@@ -63,7 +64,9 @@ This should crunch though the installation of a bunch of Perl modules that Bise 
 
 ### Configuration
 
-For now, just tune the read-only variables defined at the top of the file.
+Copy `conf/conf-example.yaml` to `conf/conf.yaml` and update as you'd like.
+
+See the example config doc itself for config documentation.
 
 ## Credits
 

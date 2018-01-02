@@ -7,3 +7,4 @@ requires 'PerlIO::gzip';
 requires 'Path::Class::File';
 requires 'DateTime::Format::Strptime';
 requires 'Readonly';
+requires 'YAML';

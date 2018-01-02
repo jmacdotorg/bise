@@ -9,32 +9,22 @@ use DateTime;
 use PerlIO::gzip;
 use Path::Class::File;
 use DateTime::Format::Strptime;
+use YAML qw(LoadFile);
+use FindBin;
 
 use Readonly;
 
-##########
-# CONFIG
-##########
-# Until I set up real config stuff, editing these Readonly variables is all you
-# get. Sorry!
+Readonly my $DEFAULT_REGULAR_INTERVAL_DAYS => 1;
+Readonly my $DEFAULT_DATE_FORMAT => '%B %d';
 
-# How many days must separate the earliest & latest hits from a given IP
-# in order for us to consider them a "regular" visitor:
-Readonly my $REGULAR_INTERVAL_DAYS => 1;
+my $config_ref = LoadFile( "$FindBin::Bin/conf/conf.yaml" );
+$config_ref->{ regular_interval_days } ||= $DEFAULT_REGULAR_INTERVAL_DAYS;
+$config_ref->{ date_format } ||= $DEFAULT_DATE_FORMAT;
 
-# The output table's date format:
-Readonly my $DATE_FORMAT => '%B %d';
-
-# Path of your blog's front page.
-Readonly my $FRONT_PAGE_PATH => '/';
-
-# Path of your blog's RSS feed.
-Readonly my $RSS_FEED_PATH => '/atom.xml';
-
-# Path of your blog's JSON feed.
-Readonly my $JSON_FEED_PATH => '/feed.json';
-
-### End of config stuff.
+my @reports;
+foreach ( @{ $config_ref->{ reports } } ) {
+    push @reports, { config => $_ };
+}
 
 my @log_files = sort {
     if ( $a =~ /log$/ ) {
@@ -56,37 +46,30 @@ my $two_weeks_ago = $now->clone->subtract( days => 14 );
 my $parser = Apache::Log::Parser->new (fast => 1);
 my $strp = DateTime::Format::Strptime->new( pattern => '%d/%b/%Y:%H:%M:%S %z' );
 
-my %frontpage;
-my %feed;
-
-my %twitter;
-my %facebook;
-
-my %uniques;
-
 my $done_reading = 0;
 for my $log_filename (@log_files) {
     last if $done_reading;
     process_log_file( $log_filename );
 }
 
-my %regular_frontpage = %frontpage;
-my %regular_feed = %feed;
-my %regular_twitter = %twitter;
-my %regular_facebook = %facebook;
+for my $report (@reports) {
+    my $total = 0;
+    my $regular_total = 0;
+    my $hits_ref = $report->{hits};
+    for my $ip (keys %$hits_ref ) {
+        $total += $$hits_ref{$ip}{count};
+        if ( int($$hits_ref{$ip}{latest}->subtract_datetime_absolute($$hits_ref{$ip}{earliest})->seconds / 62400 ) >= $config_ref->{regular_interval_days} ) {
+        	$regular_total += $$hits_ref{$ip}{count};
+        }
+    }
+    $report->{total} = $total;
+    $report->{regular_total} = $regular_total;
 
-foreach ( \%frontpage, \%feed, \%twitter, \%facebook ) {
-    adjust_total_counts($_);
-}
-
-foreach ( \%regular_frontpage, \%regular_feed, \%regular_twitter, \%regular_facebook ) {
-    filter_regulars($_);
-    adjust_total_counts($_);
 }
 
 my ($header, $uniques, $regulars);
 
-say $two_weeks_ago->strftime($DATE_FORMAT) . ' - ' . $now->strftime($DATE_FORMAT);
+say $two_weeks_ago->strftime($config_ref->{date_format}) . ' - ' . $now->strftime($config_ref->{date_format});
 format STDOUT_TOP =
 Source                 Uniques Regulars
 ---------------------------------------
@@ -96,52 +79,14 @@ format STDOUT =
 $header,             $uniques, $regulars
 .
 
-$header = 'All visitors';
-$uniques = keys %uniques;
-$regulars = 'N/A';
-write;
-
-report_line( 'RSS/JSON feeds', \%feed, \%regular_feed);
-report_line( 'Front page',\%frontpage, \%regular_frontpage);
-report_line( 'Visits from Twitter', \%twitter, \%regular_twitter);
-report_line( 'Visits from Facebook', \%facebook, \%regular_facebook);
+foreach ( @reports ) { report_line($_) }
 
 sub report_line {
-    my ($the_header, $hits_ref, $regular_hits_ref) = @_;
-    $header = $the_header;
-    $uniques = $$hits_ref{total};
-    $regulars = $$regular_hits_ref{total};
+    my ($report) = @_;
+    $header = $report->{config}{label};
+    $uniques = $report->{total};
+    $regulars = $report->{regular_total};
     write;
-}
-
-sub adjust_total_counts {
-    my ( $hits_ref ) = @_;
-
-    my $total = 0;
-    for my $ip (keys %$hits_ref ) {
-        $total += $$hits_ref{$ip}{count};
-    }
-
-    $$hits_ref{total} = $total;
-}
-
-sub filter_regulars {
-    my ( $hits_ref ) = @_;
-
-    for my $ip (keys %$hits_ref ) {
-        if ( $$hits_ref{$ip}{latest}->subtract_datetime($$hits_ref{$ip}{earliest})->days < $REGULAR_INTERVAL_DAYS ) {
-        	delete $$hits_ref{$ip};
-        }
-    }
-}
-
-sub register_hit {
-    my ( $hits_ref, $ip, $time, ) = @_;
-    unless ($$hits_ref{$ip} ) {
-    	$$hits_ref{$ip}{latest} = $time;
-    }
-    $$hits_ref{$ip}{earliest} = $time;
-    $$hits_ref{$ip}{count} = 1;
 }
 
 sub process_log_file {
@@ -157,49 +102,55 @@ sub process_log_file {
 
     while ( my $line = $fh->readline ) {
         my $log = $parser->parse( $line );
+        next unless $log->{status} && $log->{status} < 400;
         my $time = $strp->parse_datetime( $log->{datetime} );
         if ( $time < $two_weeks_ago ) {
             $done_reading = 1;
             last;
         }
-        my $ip = $log->{rhost};
-        my $path = $log->{path};
-        my $agent_string = $log->{agent};
+
+        my $agent = $log->{agent};
+        my $ip    = $log->{rhost};
+        my $path  = $log->{path};
+        my $referer = $log->{referer};
 
         # If it says it's a bot, trust it.
-        next if $agent_string =~ /bot\b/i;
+        next if $agent =~ /bot\b/i;
 
-        $uniques{ $ip } = 1;
+        # Ignore unhelpful aggregators.
+        next if $agent =~ /Digg Feed Fetcher/;
+        next if $agent =~ /Feedly/;
 
-        # Count folks loading the front page.
-        if ( $path eq $FRONT_PAGE_PATH ) {
-            register_hit( \%frontpage, $ip, $time );
+        # Determine the number of readers this line represents.
+        my $reader_count = 1;
+        if ($agent =~ /\b(\d+) (subscriber|reader)/) {
+            $reader_count = $1;
         }
 
-        # Count folks landing anywhere from Twitter & Facebook.
-        if ( $agent_string =~ /facebook/ ) {
-        	register_hit( \%facebook, $ip, $time );
-        }   elsif ( $log->{referer} =~ /t\.co/ ) {
-        	register_hit( \%twitter, $ip, $time );
+        # Run through all our reports' tests.
+        for my $report (@reports) {
+            my $matched = 0;
+            my %report_config = %{ $report->{config} };
+            if ($report_config{test_type} eq 'path_regex' ) {
+                $matched = 1 if $path =~ /$report_config{test}/;
+            }
+            elsif ( $report_config{test_type} eq 'path' ) {
+                $matched = 1 if $path eq $report_config{test};
+            }
+            elsif ( $report_config{test_type} eq 'referer_regex' ) {
+                $matched = 1 if $referer =~ /$report_config{test}/;
+            }
+            elsif ( $report_config{test_type} eq 'agent_regex' ) {
+                $matched = 1 if $agent =~ /$report_config{test}/;
+            }
+
+            if ( $matched ) {
+                unless ($report->{hits}{$ip} ) {
+                	$report->{hits}{$ip}{latest} = $time;
+                }
+                $report->{hits}{$ip}{earliest} = $time;
+                $report->{hits}{$ip}{count} = $reader_count;
+            }
         }
-
-        # Count folks reading the feed.
-        if ( $path eq $RSS_FEED_PATH || $path eq $JSON_FEED_PATH) {
-            next if $agent_string =~ /Digg Feed Fetcher/;
-            next if $agent_string =~ /Feedly/;
-            register_hit( \%feed, $ip, $time );
-
-            # Check if tha UA string has a "[N] subscribers" indicator.
-            # If so, trust it, and adjust the count-increment.
-            # (We subtract 1 coz register_hit already adds 1.)
-            my $subscription_count = 0;
-            if ($agent_string =~ /\b(\d+) subscriber/) {
-                $subscription_count = $1 - 1;
-            }
-            elsif ($agent_string =~ /\b(\d+) reader/) {
-                $subscription_count = $1 - 1;
-            }
-            $feed{$ip}{count} += $subscription_count;
-         }
     }
 }

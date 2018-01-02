@@ -1,0 +1,32 @@
+# Bise configuration file
+
+# The "reports" section contains one entry for every row in our desired output
+# table. Each entry in this section contains the following keys:
+#   label: The label for this report row.
+#   test_type: One of "path", "path_regex", "referer_regex", or "agent_regex".
+#              Describes the test to perform on a given server-log entry in
+#              order to determine whether we should count it as a hit, as far
+#              as this particular report is concerned.
+#   test: The text of the comparison we'll make with the given server-log entry.
+#         For test_type "path", this should be a literal string.
+#         For every other test_type, this should be a regular expression.
+#
+reports:
+    - label: All visitors
+      test_type: path_regex
+      test: /$|html$|htm$|xml$|json$
+    - label: RSS feed
+      test_type: path
+      test: /atom.xml
+    - label: JSON feed
+      test_type: path
+      test: /feed.json
+    - label: Front page
+      test_type: path
+      test: /
+    - label: From Twitter
+      test_type: referer_regex
+      test: t\.co
+    - label: From Facebook
+      test_type: agent_regex
+      test: facebook
