@@ -39,7 +39,7 @@ Bise assumes that the files will be sortable by date according to Apache's defau
 
 Rows are entirely user-defined. Set up a list of substring-match or pattern-match tests for Bise to run against each salient line of the web server's log files, and Bise will display the results of each test in a single, labeled row of its output table.
 
-The example output at the top of this document displays six such reports, and these happen to correspond to the example configuration file found in `conf/conf-example.yaml`.
+The example output at the top of this document displays five such reports, and these happen to correspond to the example configuration file found in `conf/conf-example.yaml`.
 
 See "Configuration", below, for more information.
 
