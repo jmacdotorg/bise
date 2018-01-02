@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+our $VERSION = 0.1;
+
 use Modern::Perl;
 
 use File::ReadBackwards;
@@ -11,11 +13,23 @@ use Path::Class::File;
 use DateTime::Format::Strptime;
 use YAML qw(LoadFile);
 use FindBin;
+use Getopt::Std;
+use JSON;
 
 use Readonly;
-
 Readonly my $DEFAULT_REGULAR_INTERVAL_DAYS => 1;
 Readonly my $DEFAULT_DATE_FORMAT => '%B %d';
+Readonly my $DEFAULT_CONFIG_PATH => "$FindBin::Bin/conf/conf.yaml";
+Readonly my $DEFAULT_DAYS_TO_CONSIDER => 14;
+
+my %options;
+getopts( 'jc:', \%options);
+$options{c} ||= $DEFAULT_CONFIG_PATH;
+
+my $config_ref = LoadFile( $options{c} );
+$config_ref->{ regular_interval_days } ||= $DEFAULT_REGULAR_INTERVAL_DAYS;
+$config_ref->{ date_format } ||= $DEFAULT_DATE_FORMAT;
+$config_ref->{ days_to_consider } ||= $DEFAULT_DAYS_TO_CONSIDER;
 
 # Bot agent-string pattern list based on
 # https://www.sumologic.com/apache/identifying-robots-with-apache-logs/
@@ -25,10 +39,6 @@ Readonly my @BOT_REGEXES => (
 'BingPreview', 'Mediapartners-Google', 'proximic', 'Ezooms', 'AddThis.com',
 'facebookexternalhit', 'MetaURI', 'GoogleProducer', 'RockmeltEmbedder', 'Feedly',
 );
-
-my $config_ref = LoadFile( "$FindBin::Bin/conf/conf.yaml" );
-$config_ref->{ regular_interval_days } ||= $DEFAULT_REGULAR_INTERVAL_DAYS;
-$config_ref->{ date_format } ||= $DEFAULT_DATE_FORMAT;
 
 my @reports;
 foreach ( @{ $config_ref->{ reports } } ) {
@@ -50,7 +60,7 @@ my @log_files = sort {
 } @ARGV;
 
 my $now = DateTime->now;
-my $two_weeks_ago = $now->clone->subtract( days => 14 );
+my $two_weeks_ago = $now->clone->subtract( days => $config_ref->{days_to_consider} );
 
 my $parser = Apache::Log::Parser->new (fast => 1);
 my $strp = DateTime::Format::Strptime->new( pattern => '%d/%b/%Y:%H:%M:%S %z' );
@@ -76,10 +86,29 @@ for my $report (@reports) {
 
 }
 
-my ($header, $uniques, $regulars);
+# If the "j" command-line switch is set, the user wants JSON output.
+# Otherwise, they get human-readable tabular output.
+if ( $options{j} ) {
+    my %output = (
+        start_time => "$two_weeks_ago",
+        end_time => "$now",
+        reports => [],
+    );
+    for my $report ( @reports ) {
+        push @{ $output{reports} }, {
+            label => $report->{config}{label},
+            uniques => $report->{total},
+            regulars => $report->{regular_total},
+        };
+    }
 
-say $two_weeks_ago->strftime($config_ref->{date_format}) . ' - ' . $now->strftime($config_ref->{date_format});
-format STDOUT_TOP =
+    say encode_json( \%output );
+}
+else {
+    my ($header, $uniques, $regulars);
+
+    say $two_weeks_ago->strftime($config_ref->{date_format}) . ' - ' . $now->strftime($config_ref->{date_format});
+    format STDOUT_TOP =
 Source                 Uniques Regulars
 ---------------------------------------
 .
@@ -88,15 +117,17 @@ format STDOUT =
 $header,             $uniques, $regulars
 .
 
-foreach ( @reports ) { report_line($_) }
+    foreach ( @reports ) { report_line($_) }
 
-sub report_line {
-    my ($report) = @_;
-    $header = $report->{config}{label};
-    $uniques = $report->{total};
-    $regulars = $report->{regular_total};
-    write;
+    sub report_line {
+        my ($report) = @_;
+        $header = $report->{config}{label};
+        $uniques = $report->{total};
+        $regulars = $report->{regular_total};
+        write;
+    }
 }
+
 
 sub process_log_file {
     my ( $log_filename ) = @_;
@@ -105,6 +136,7 @@ sub process_log_file {
     if ($log_file =~ /gz$/) {
         my $temp_file = File::Temp->new;
         print $temp_file $log_file->slurp( iomode => '<:gzip' );
+        $temp_file->close;
         $log_file = $temp_file;
     }
     my $fh = File::ReadBackwards->new( $log_file );
