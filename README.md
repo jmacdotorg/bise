@@ -52,7 +52,7 @@ Super-duper alpha. As of early 2018 I've only just started using this tool mysel
 
 ### Installation
 
-To install Bise's dependencies, run the following command from the top level of your Plerd repository (the directory that contains this here README file):
+To install Bise's dependencies, run the following command from the top level of your Bise repository (the directory that contains this here README file):
 
     curl -fsSL https://cpanmin.us | perl - --installdeps .
     
