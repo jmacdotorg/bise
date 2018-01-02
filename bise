@@ -17,6 +17,15 @@ use Readonly;
 Readonly my $DEFAULT_REGULAR_INTERVAL_DAYS => 1;
 Readonly my $DEFAULT_DATE_FORMAT => '%B %d';
 
+# Bot agent-string pattern list based on
+# https://www.sumologic.com/apache/identifying-robots-with-apache-logs/
+Readonly my @BOT_REGEXES => (
+'[Bb]ot\b', '[Ff]etcher\b', '[Ss]pider\b', '[Cc]rawler\b',
+'AskJeeves', 'Digger', 'Lycos', 'Inktomi Slurp', 'Yahoo', 'Nutch',
+'BingPreview', 'Mediapartners-Google', 'proximic', 'Ezooms', 'AddThis.com',
+'facebookexternalhit', 'MetaURI', 'GoogleProducer', 'RockmeltEmbedder', 'Feedly',
+);
+
 my $config_ref = LoadFile( "$FindBin::Bin/conf/conf.yaml" );
 $config_ref->{ regular_interval_days } ||= $DEFAULT_REGULAR_INTERVAL_DAYS;
 $config_ref->{ date_format } ||= $DEFAULT_DATE_FORMAT;
@@ -114,16 +123,11 @@ sub process_log_file {
         my $path  = $log->{path};
         my $referer = $log->{referer};
 
-        # If it says it's a bot, trust it.
-        next if $agent =~ /bot\b/i;
-
-        # Ignore unhelpful aggregators.
-        next if $agent =~ /Digg Feed Fetcher/;
-        next if $agent =~ /Feedly/;
-
         # If this is a helpful aggregator, note how many readers it mentions,
         # and then treat its agent string as our storage key,
-        # Otherwise, assume one reader, keyed by IP address.
+        # Otherwise, assume one reader, keyed by IP address -- and also check
+        # whether this request comes from an apparent non-human, not worth
+        # recording.
         my $hit_key;
         my $reader_count;
         if ($agent =~ /^(.*)\b(\d+) (subscriber|reader)/) {
@@ -133,6 +137,14 @@ sub process_log_file {
         else {
             $reader_count = 1;
             $hit_key = $ip;
+            my $bot_found = 0;
+            foreach (@BOT_REGEXES) {
+                if ($agent =~ /$_/) {
+                    $bot_found = 1;
+                    last;
+                }
+            }
+            next if $bot_found;
         }
 
         # Run through all our reports' tests.
