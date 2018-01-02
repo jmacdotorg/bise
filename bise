@@ -121,10 +121,18 @@ sub process_log_file {
         next if $agent =~ /Digg Feed Fetcher/;
         next if $agent =~ /Feedly/;
 
-        # Determine the number of readers this line represents.
-        my $reader_count = 1;
-        if ($agent =~ /\b(\d+) (subscriber|reader)/) {
-            $reader_count = $1;
+        # If this is a helpful aggregator, note how many readers it mentions,
+        # and then treat its agent string as our storage key,
+        # Otherwise, assume one reader, keyed by IP address.
+        my $hit_key;
+        my $reader_count;
+        if ($agent =~ /^(.*)\b(\d+) (subscriber|reader)/) {
+            $reader_count = $2;
+            $hit_key = $1;
+        }
+        else {
+            $reader_count = 1;
+            $hit_key = $ip;
         }
 
         # Run through all our reports' tests.
@@ -145,11 +153,11 @@ sub process_log_file {
             }
 
             if ( $matched ) {
-                unless ($report->{hits}{$ip} ) {
-                	$report->{hits}{$ip}{latest} = $time;
+                unless ($report->{hits}{$hit_key} ) {
+                	$report->{hits}{$hit_key}{latest} = $time;
                 }
-                $report->{hits}{$ip}{earliest} = $time;
-                $report->{hits}{$ip}{count} = $reader_count;
+                $report->{hits}{$hit_key}{earliest} = $time;
+                $report->{hits}{$hit_key}{count} = $reader_count;
             }
         }
     }
