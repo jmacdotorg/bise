@@ -11,7 +11,6 @@ RSS feed                   583      421
 JSON feed                   28       17
 Front page                1905      268
 From Twitter                48        4
-From Facebook               77        1
 ```
 
 See "Output details", below, for a deeper explanation of this table's content.

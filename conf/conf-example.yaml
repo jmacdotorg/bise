@@ -27,6 +27,3 @@ reports:
     - label: From Twitter
       test_type: referer_regex
       test: t\.co
-    - label: From Facebook
-      test_type: agent_regex
-      test: facebook
