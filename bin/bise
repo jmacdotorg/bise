@@ -19,7 +19,7 @@ use JSON;
 use Readonly;
 Readonly my $DEFAULT_REGULAR_INTERVAL_DAYS => 1;
 Readonly my $DEFAULT_DATE_FORMAT => '%B %d';
-Readonly my $DEFAULT_CONFIG_PATH => "$FindBin::Bin/conf/conf.yaml";
+Readonly my $DEFAULT_CONFIG_PATH => "$FindBin::Bin/../conf/conf.yaml";
 Readonly my $DEFAULT_DAYS_TO_CONSIDER => 14;
 
 my %options;
@@ -234,7 +234,7 @@ This script accepts the following optional command-line options.
 
 Specify the location of a YAML configuration file that Bise should use.
 
-By default, Bise loads the file at C<conf/conf.yaml>, relative to its own
+By default, Bise loads the file at C<../conf/conf.yaml>, relative to its own
 location in the filesystem.
 
 =item B<-j>

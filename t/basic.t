@@ -5,7 +5,7 @@ use JSON;
 
 my $config_file = "$FindBin::Bin/conf/conf.yaml";
 
-my $results_json = `$FindBin::Bin/../bise -c $config_file -j $FindBin::Bin/logs/access.log*`;
+my $results_json = `$FindBin::Bin/../bin/bise -c $config_file -j $FindBin::Bin/logs/access.log*`;
 my $results_ref = decode_json( $results_json );
 
 is( 'HASH', ref $results_ref );
