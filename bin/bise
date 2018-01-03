@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = 0.1;
+our $VERSION = '0.1';
 
 use Modern::Perl;
 
