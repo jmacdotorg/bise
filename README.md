@@ -1,6 +1,6 @@
 # Bise
 
-Bise generates a tidy little summary of your blog's current human readership, based on the most recent couple of weeks' server logs. Its output looks like this:
+Bise generates a tidy little summary, in tabular text or in JSON, of your blog's current human readership, based on the most recent couple of weeks' server logs. Its default output looks like this:
 
 ```
 December 14 - December 28
@@ -30,6 +30,8 @@ Once you've got Bise set up (see "Setup", below), run it on the command line, pr
 ```
  ./bise /var/log/apache/blog-access.log*
 ``` 
+ 
+You can add a **-j** command-line flag to have Bise output JSON rather than a human-readable table.
  
 Bise assumes two things about the referenced log files:
 
@@ -72,6 +74,8 @@ This should crunch though the installation of a bunch of Perl modules that Bise 
 ### Configuration
 
 Copy `conf/conf-example.yaml` to `conf/conf.yaml` and update as you'd like. See the example config doc itself for config documentation.
+
+If you'd like to use a configuration file located somewhere else on your filesystem, specify it upon invocation with the **-c** command-line option.
 
 I dare say that this example config file is ready to generate meaningful reports as-is, once you customize the paths a bit. (And you'll probably want to remove the JSON Feed test, because you probably don't use [JSON Feed](https://jsonfeed.org). But maybe you do, in which case, hey.)
 
