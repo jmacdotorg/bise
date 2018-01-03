@@ -15,15 +15,19 @@ reports:
     - label: All visitors
       test_type: path_regex
       test: /$|html$|htm$|xml$|json$
+
     - label: RSS feed
       test_type: path
       test: /atom.xml
+
     - label: JSON feed
       test_type: path
       test: /feed.json
+
     - label: Front page
       test_type: path
       test: /
+
     - label: From Twitter
       test_type: referer_regex
       test: t\.co
