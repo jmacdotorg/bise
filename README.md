@@ -53,7 +53,7 @@ Some of these logs (or, indeed, most) can also be gzipped (and thus have names e
 
 Rows are entirely user-defined. Set up a list of substring-match or pattern-match tests for Bise to run against each salient line of the web server's log files, and Bise will display the results of each test in a single, labeled row of its output table.
 
-The example output at the top of this document displays five such reports, and these happen to correspond to the example configuration file found in `conf/conf-example.yaml`.
+The example output at the top of this document displays five such reports, and these happen to correspond to some of those found in example configuration file found in `conf/conf-example.yaml`.
 
 See "Configuration", below, for more information.
 
@@ -81,7 +81,7 @@ I dare say that this example config file is ready to generate meaningful reports
 
 ## How Bise gets its numbers
 
-For every sufficiently recent log-line fed to it, Bise determines which of these possible entities it comes from: 
+For every sufficiently recent log-line associated with a non-error HTTP response (status-coded 1XX, 2XX or 3XX), Bise determines which of these possible entities it comes from: 
 
 * A feed aggregator, reporting the number of human readers it represents.
 
