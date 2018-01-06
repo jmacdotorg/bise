@@ -2,7 +2,10 @@ days_to_consider: 365000
 reports:
     - label: All visitors
       test_type: path_regex
-      test: /$|html$|htm$|xml$|json$
+      test: |
+        /$           # Match all requests whose paths end in '/'.
+        |html$|htm$  # And all explicit requests for .html or .htm files.
+        |xml$|json$  # And all requests for .xml (RSS) and .json (feed) files.
     - label: RSS feed
       test_type: path
       test: /atom.xml

@@ -184,16 +184,16 @@ sub process_log_file {
             my $matched = 0;
             my %report_config = %{ $report->{config} };
             if ($report_config{test_type} eq 'path_regex' ) {
-                $matched = 1 if $path =~ /$report_config{test}/;
+                $matched = 1 if $path =~ /$report_config{test}/x;
             }
             elsif ( $report_config{test_type} eq 'path' ) {
                 $matched = 1 if $path eq $report_config{test};
             }
             elsif ( $report_config{test_type} eq 'referer_regex' ) {
-                $matched = 1 if $referer =~ /$report_config{test}/;
+                $matched = 1 if $referer =~ /$report_config{test}/x;
             }
             elsif ( $report_config{test_type} eq 'agent_regex' ) {
-                $matched = 1 if $agent =~ /$report_config{test}/;
+                $matched = 1 if $agent =~ /$report_config{test}/x;
             }
 
             if ( $matched ) {
