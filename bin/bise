@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = '2020.05.08.0;
+our $VERSION = '2020.05.08.0';
 
 use Modern::Perl;
 
@@ -15,6 +15,7 @@ use YAML qw(LoadFile);
 use FindBin;
 use Getopt::Std;
 use JSON;
+use File::stat;
 
 use Readonly;
 Readonly my $DEFAULT_REGULAR_INTERVAL_DAYS => 1;
@@ -23,7 +24,7 @@ Readonly my $DEFAULT_CONFIG_PATH => "$FindBin::Bin/../conf/conf.yaml";
 Readonly my $DEFAULT_DAYS_TO_CONSIDER => 14;
 
 my %options;
-getopts( 'jc:', \%options);
+getopts( 'jmc:', \%options);
 $options{c} ||= $DEFAULT_CONFIG_PATH;
 
 my $config_ref = LoadFile( $options{c} );
@@ -45,19 +46,8 @@ foreach ( @{ $config_ref->{ reports } } ) {
     push @reports, { config => $_ };
 }
 
-my @log_files = sort {
-    if ( $a =~ /log$/ ) {
-        return -1;
-    }
-    elsif ( $b =~ /log$/ ) {
-        return 1;
-    }
-    my ($a_digit, $b_digit);
-    ($a_digit) = $a =~ /log.(\d+)/;
-    ($b_digit) = $b =~ /log.(\d+)/;
-
-    return $a_digit <=> $b_digit;
-} @ARGV;
+my $sort_sub = $options{'m'}? 'sort_by_mtime' : 'sort_by_filename';
+my @log_files = sort $sort_sub @ARGV;
 
 my $now = DateTime->now;
 my $two_weeks_ago = $now->clone->subtract( days => $config_ref->{days_to_consider} );
@@ -126,6 +116,30 @@ $header,             $uniques, $regulars
         $regulars = $report->{regular_total};
         write;
     }
+}
+
+sub sort_by_filename {
+    if ( $a =~ /log$/ ) {
+        return -1;
+    }
+    elsif ( $b =~ /log$/ ) {
+        return 1;
+    }
+    my ($a_digit, $b_digit);
+    ($a_digit) = $a =~ /log.(\d+)/;
+    ($b_digit) = $b =~ /log.(\d+)/;
+
+    return $a_digit <=> $b_digit;
+}
+
+sub sort_by_mtime {
+    my @stats;
+    foreach ($a, $b) {
+        my $stat = stat $_ or die "Could not stat $_: $!\n";
+        push @stats, $stat;
+    }
+
+    return $stats[1]->mtime <=> $stats[0]->mtime;
 }
 
 
@@ -240,6 +254,17 @@ location in the filesystem.
 =item B<-j>
 
 Format report output as JSON, rather than the default human-readable table.
+
+=item B<-m>
+
+Sort log files by modification time, rather than by filename.
+
+By default, Bise assumes that the most recent log file ends with C<.log>, and
+that older files end with C<.log.> followed by a number (and then, possibly,
+C<.gz>). This matches the default log-naming behavior of Apache.
+
+So, if you're not using Apache, or if your log files aren't named after this
+pattern for some other reason, consider using the B<-m> switch.
 
 =back
 
