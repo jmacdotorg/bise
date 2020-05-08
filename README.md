@@ -59,7 +59,9 @@ See "Configuration", below, for more information.
 
 ## Project status
 
-Super-duper alpha. As of early 2018 I've only just started using this tool myself, and I'm still working on determining what shape it wants to be. Every facet of it is highly susceptive to abrupt change while this happens.
+I have run Bise every week for years, so I suppose we can consider it reasonably stable, as of summer 2020.
+
+I may add new features over time, but I do not plan to break any of its existing functionality or use-patterns. It will remain a very simple program.
 
 ## Setup
 
