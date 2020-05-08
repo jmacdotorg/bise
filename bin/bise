@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = '0.1';
+our $VERSION = '2020.05.08.0;
 
 use Modern::Perl;
 
